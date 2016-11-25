@@ -5,7 +5,11 @@ defmodule SchemaOrg do
     %Schema{type: type}
   end
 
-  def put_property(schema, key, value) do
+  def create_schema(type, %{} = properties) do
+    %Schema{type: type, properties: properties}
+  end
+
+  def set_property(schema, key, value) do
     %{schema | properties: Map.put(schema.properties, key, value)}
   end
 
@@ -22,8 +26,12 @@ defmodule SchemaOrg do
     
     properties = for {key, value} <- schema.properties, into: %{} do
       case {key, value} do
-        {key, %Schema{} = value} -> {key, to_map(value)}
-        {key, value} -> {key, value}
+        {key, %Schema{} = value} -> 
+          {:ok, map} = to_map(value)
+          map = Map.drop(map, ["@context"])
+          {key, map}
+        {key, value} ->
+          {key, value}
       end
     end
     
