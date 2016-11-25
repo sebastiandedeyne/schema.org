@@ -9,25 +9,32 @@ defmodule SchemaOrg do
     %{schema | properties: Map.put(schema.properties, key, value)}
   end
 
-  def to_json(%Schema{context: context}) when context == nil do
+  def to_map(%Schema{context: context}) when context == nil do
     {:error, "No context specified"}
   end
 
-  def to_json(%Schema{type: type}) when type == nil do
+  def to_map(%Schema{type: type}) when type == nil do
     {:error, "No type specified"}
   end
 
-  def to_json(%Schema{} = schema) do
+  def to_map(%Schema{} = schema) do
     meta = %{"@context" => schema.context, "@type" => schema.type}
     
     properties = for {key, value} <- schema.properties, into: %{} do
       case {key, value} do
-        {key, %Schema{} = value} -> {key, to_json(value)}
+        {key, %Schema{} = value} -> {key, to_map(value)}
         {key, value} -> {key, value}
       end
     end
     
-    Poison.encode(Map.merge(meta, properties));
+    {:ok, Map.merge(meta, properties)}
+  end
+
+  def to_json(%Schema{} = schema) do
+    case to_map(schema) do
+      {:ok, map} -> Poison.encode(map);
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   def to_script(%Schema{} = schema) do
